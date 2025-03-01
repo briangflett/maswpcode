@@ -1,6 +1,6 @@
 <?php
 
-namespace MasWPCode\ElementorForms;
+namespace ElementorPro\Modules\Forms\Actions;
 
 if (!defined('ABSPATH')) {
     exit; // Exit if accessed directly.
@@ -9,7 +9,7 @@ if (!defined('ABSPATH')) {
 use ElementorPro\Modules\Forms\Classes\Action_Base;
 use ElementorPro\Modules\Forms\Classes\Form_Record;
 
-class MAS_Action_1 extends Action_Base
+class MASWPCode_Form_Action_1 extends Action_Base
 {
 
     public function get_name()
