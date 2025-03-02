@@ -6,8 +6,8 @@
  * @link       https://www.linkedin.com/in/brian-flett-2a43691/?originalSubdomain=ca
  * @since      1.0.0
  *
- * @package    Maswpcode
- * @subpackage Maswpcode/includes
+ * @package    MASWPCode
+ * @subpackage MASWPCode/includes
  */
 
 /**
@@ -17,11 +17,11 @@
  * the plugin, and register them with the WordPress API. Call the
  * run function to execute the list of actions and filters.
  *
- * @package    Maswpcode
- * @subpackage Maswpcode/includes
+ * @package    MASWPCode
+ * @subpackage MASWPCode/includes
  * @author     Brian Flett <brian.g.flett@gmail.com>
  */
-class Maswpcode_Loader {
+class MASWPCode_Loader {
 
 	/**
 	 * The array of actions registered with WordPress.

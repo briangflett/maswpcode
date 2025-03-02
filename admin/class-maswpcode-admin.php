@@ -6,8 +6,8 @@
  * @link       https://www.linkedin.com/in/brian-flett-2a43691/?originalSubdomain=ca
  * @since      1.0.0
  *
- * @package    Maswpcode
- * @subpackage Maswpcode/admin
+ * @package    MASWPCode
+ * @subpackage MASWPCode/admin
  */
 
 /**
@@ -16,11 +16,12 @@
  * Defines the plugin name, version, and two examples hooks for how to
  * enqueue the admin-specific stylesheet and JavaScript.
  *
- * @package    Maswpcode
- * @subpackage Maswpcode/admin
+ * @package    MASWPCode
+ * @subpackage MASWPCode/admin
  * @author     Brian Flett <brian.g.flett@gmail.com>
  */
-class Maswpcode_Admin {
+class MASWPCode_Admin
+{
 
 	/**
 	 * The ID of this plugin.
@@ -47,11 +48,11 @@ class Maswpcode_Admin {
 	 * @param      string    $plugin_name       The name of this plugin.
 	 * @param      string    $version    The version of this plugin.
 	 */
-	public function __construct( $plugin_name, $version ) {
+	public function __construct($plugin_name, $version)
+	{
 
 		$this->plugin_name = $plugin_name;
 		$this->version = $version;
-
 	}
 
 	/**
@@ -59,22 +60,22 @@ class Maswpcode_Admin {
 	 *
 	 * @since    1.0.0
 	 */
-	public function enqueue_styles() {
+	public function enqueue_styles()
+	{
 
 		/**
 		 * This function is provided for demonstration purposes only.
 		 *
 		 * An instance of this class should be passed to the run() function
-		 * defined in Maswpcode_Loader as all of the hooks are defined
+		 * defined in MASWPCode_Loader as all of the hooks are defined
 		 * in that particular class.
 		 *
-		 * The Maswpcode_Loader will then create the relationship
+		 * The MASWPCode_Loader will then create the relationship
 		 * between the defined hooks and the functions defined in this
 		 * class.
 		 */
 
-		wp_enqueue_style( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'css/maswpcode-admin.css', array(), $this->version, 'all' );
-
+		wp_enqueue_style($this->plugin_name, plugin_dir_url(__FILE__) . 'css/maswpcode-admin.css', array(), $this->version, 'all');
 	}
 
 	/**
@@ -82,22 +83,21 @@ class Maswpcode_Admin {
 	 *
 	 * @since    1.0.0
 	 */
-	public function enqueue_scripts() {
+	public function enqueue_scripts()
+	{
 
 		/**
 		 * This function is provided for demonstration purposes only.
 		 *
 		 * An instance of this class should be passed to the run() function
-		 * defined in Maswpcode_Loader as all of the hooks are defined
+		 * defined in MASWPCode_Loader as all of the hooks are defined
 		 * in that particular class.
 		 *
-		 * The Maswpcode_Loader will then create the relationship
+		 * The MASWPCode_Loader will then create the relationship
 		 * between the defined hooks and the functions defined in this
 		 * class.
 		 */
 
-		wp_enqueue_script( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'js/maswpcode-admin.js', array( 'jquery' ), $this->version, false );
-
+		wp_enqueue_script($this->plugin_name, plugin_dir_url(__FILE__) . 'js/maswpcode-admin.js', array('jquery'), $this->version, false);
 	}
-
 }
