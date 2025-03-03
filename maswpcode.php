@@ -3,11 +3,6 @@
 /**
  * The plugin bootstrap file
  *
- * This file is read by WordPress to generate the plugin information in the plugin
- * admin area. This file also includes all of the dependencies used by the plugin,
- * registers the activation and deactivation functions, and defines a function
- * that starts the plugin.
- *
  * @link              https://www.linkedin.com/in/brian-flett-2a43691/?originalSubdomain=ca
  * @since             1.0.0
  * @package           MASWPCode
@@ -26,9 +21,12 @@
  */
 
 // If this file is called directly, abort.
-if (! defined('WPINC')) {
+if (!defined('WPINC')) {
 	die;
 }
+
+// Define the plugin version at the root level
+define('MASWPCODE_VERSION', '1.0.0');
 
 /**
  * Check if Elementor Pro is active before running MAS WPCode.
@@ -37,8 +35,7 @@ function maswpcode_check_elementor_pro()
 {
 	if (!did_action('elementor/loaded') || !class_exists('ElementorPro\Plugin')) {
 		add_action('admin_notices', 'maswpcode_elementor_pro_missing_notice');
-		deactivate_plugins(plugin_basename(__FILE__)); // Deactivate plugin if Elementor Pro is missing
-		return false;
+		return false; // Prevents further execution
 	}
 	return true;
 }
@@ -51,21 +48,8 @@ function maswpcode_elementor_pro_missing_notice()
 	echo '<div class="error"><p><strong>MAS WPCode</strong> requires Elementor Pro to be installed and activated.</p></div>';
 }
 
-// Stop execution if Elementor Pro is not active
-if (!maswpcode_check_elementor_pro()) {
-	return;
-}
-
-/**
- * Currently plugin version.
- * Start at version 1.0.0 and use SemVer - https://semver.org
- * Rename this for your plugin and update it as you release new versions.
- */
-define('MASWPCODE_VERSION', '1.0.0');
-
 /**
  * The code that runs during plugin activation.
- * This action is documented in includes/class-maswpcode-activator.php
  */
 function activate_maswpcode()
 {
@@ -75,7 +59,6 @@ function activate_maswpcode()
 
 /**
  * The code that runs during plugin deactivation.
- * This action is documented in includes/class-maswpcode-deactivator.php
  */
 function deactivate_maswpcode()
 {
@@ -83,35 +66,30 @@ function deactivate_maswpcode()
 	MASWPCode_Deactivator::deactivate();
 }
 
+// Register activation and deactivation hooks (must be outside of functions)
 register_activation_hook(__FILE__, 'activate_maswpcode');
 register_deactivation_hook(__FILE__, 'deactivate_maswpcode');
 
 /**
- * The core plugin class that is used to define internationalization,
- * admin-specific hooks, and public-facing site hooks.
- */
-require plugin_dir_path(__FILE__) . 'includes/class-maswpcode.php';
-
-// Load Elementor-related features
-require_once plugin_dir_path(__FILE__) . 'includes/class-maswpcode-elementor.php';
-
-// Register Elementor widgets and form actions
-add_action('elementor/widgets/register', ['MASWPCode_Elementor', 'register_widgets']);
-add_action('elementor_pro/forms/actions/register', ['MASWPCode_Elementor', 'register_form_actions']);
-
-/**
  * Begins execution of the plugin.
- *
- * Since everything within the plugin is registered via hooks,
- * then kicking off the plugin from this point in the file does
- * not affect the page life cycle.
- *
- * @since    1.0.0
  */
-function run_maswpcode()
+function maswpcode_init()
 {
+	// Ensure Elementor Pro is loaded
+	if (!maswpcode_check_elementor_pro()) {
+		return; // Stop execution if Elementor Pro is missing
+	}
+
+	require_once plugin_dir_path(__FILE__) . 'includes/class-maswpcode.php';
+	require_once plugin_dir_path(__FILE__) . 'includes/class-maswpcode-elementor.php';
+
+	// Register Elementor widgets and form actions
+	add_action('elementor/widgets/register', ['MASWPCode_Elementor', 'register_widgets']);
+	add_action('elementor_pro/forms/actions/register', ['MASWPCode_Elementor', 'register_form_actions']);
 
 	$plugin = new MASWPCode();
 	$plugin->run();
 }
-run_maswpcode();
+
+// Ensure this runs after Elementor (priority 20)
+add_action('plugins_loaded', 'maswpcode_init', 20);

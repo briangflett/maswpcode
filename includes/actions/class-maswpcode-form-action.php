@@ -1,11 +1,15 @@
 <?php
 if (!defined('ABSPATH')) exit; // Prevent direct access
 
+// Ensure Elementor Pro is installed before defining the class
+if (!class_exists('ElementorPro\Modules\Forms\Classes\Action_Base')) {
+    return;
+}
+
 use ElementorPro\Modules\Forms\Classes\Action_Base;
 
 class MASWPCode_Form_Action extends Action_Base
 {
-
     /**
      * Get unique identifier for the form action.
      *
@@ -62,20 +66,25 @@ class MASWPCode_Form_Action extends Action_Base
      */
     public function on_submit($submission, $handler)
     {
+        global $wpdb;
         $data = $submission->get_formatted_data();
 
-        // Example: Log form data for debugging
-        error_log('MAS Form Action - Form Data: ' . print_r($data, true));
+        // Debug logging (only if WP_DEBUG is enabled)
+        if (WP_DEBUG) {
+            error_log('[MAS Form Action] Form Submission Data: ' . print_r($data, true));
+        }
 
-        // Example: Send form data via email
-        wp_mail('admin@example.com', 'New Form Submission', print_r($data, true));
+        // Send email notification to WordPress admin email
+        $admin_email = get_option('admin_email', 'admin@example.com');
+        wp_mail($admin_email, 'New Form Submission', print_r($data, true));
 
-        // Example: Save form data to custom database table
-        global $wpdb;
-        $wpdb->insert(
-            $wpdb->prefix . 'mas_form_submissions',
-            ['form_data' => json_encode($data), 'created_at' => current_time('mysql')],
-            ['%s', '%s']
+        // Save form data securely in the database
+        $wpdb->query(
+            $wpdb->prepare(
+                "INSERT INTO {$wpdb->prefix}mas_form_submissions (form_data, created_at) VALUES (%s, %s)",
+                json_encode($data),
+                current_time('mysql')
+            )
         );
 
         // Set a custom success message
