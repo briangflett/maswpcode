@@ -20,10 +20,10 @@ class MASWPCode
 
 	private function load_dependencies()
 	{
-		require_once plugin_dir_path(dirname(__FILE__)) . 'includes/class-maswpcode-loader.php';
-		require_once plugin_dir_path(dirname(__FILE__)) . 'includes/class-maswpcode-i18n.php';
-		require_once plugin_dir_path(dirname(__FILE__)) . 'admin/class-maswpcode-admin.php';
-		require_once plugin_dir_path(dirname(__FILE__)) . 'public/class-maswpcode-public.php';
+		require_once MASWPCODE_PLUGIN_DIR . 'includes/class-maswpcode-loader.php';
+		require_once MASWPCODE_PLUGIN_DIR . 'includes/class-maswpcode-i18n.php';
+		// require_once MASWPCODE_PLUGIN_DIR . 'admin/class-maswpcode-admin.php';
+		// require_once MASWPCODE_PLUGIN_DIR . 'public/class-maswpcode-public.php';
 
 		$this->loader = new MASWPCode_Loader();
 	}

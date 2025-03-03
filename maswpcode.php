@@ -27,6 +27,9 @@ if (!defined('WPINC')) {
 
 // Define the plugin version at the root level
 define('MASWPCODE_VERSION', '1.0.0');
+define('MASWPCODE_PLUGIN_DIR', plugin_dir_path(__FILE__));
+define('MASWPCODE_PLUGIN_URL', plugin_dir_url(__FILE__));
+
 
 /**
  * Check if Elementor Pro is active before running MAS WPCode.
@@ -53,7 +56,7 @@ function maswpcode_elementor_pro_missing_notice()
  */
 function activate_maswpcode()
 {
-	require_once plugin_dir_path(__FILE__) . 'includes/class-maswpcode-activator.php';
+	require_once MASWPCODE_PLUGIN_DIR . 'includes/class-maswpcode-activator.php';
 	MASWPCode_Activator::activate();
 }
 
@@ -62,7 +65,7 @@ function activate_maswpcode()
  */
 function deactivate_maswpcode()
 {
-	require_once plugin_dir_path(__FILE__) . 'includes/class-maswpcode-deactivator.php';
+	require_once MASWPCODE_PLUGIN_DIR . 'includes/class-maswpcode-deactivator.php';
 	MASWPCode_Deactivator::deactivate();
 }
 
@@ -80,12 +83,12 @@ function maswpcode_init()
 		return; // Stop execution if Elementor Pro is missing
 	}
 
-	require_once plugin_dir_path(__FILE__) . 'includes/class-maswpcode.php';
-	require_once plugin_dir_path(__FILE__) . 'includes/class-maswpcode-elementor.php';
+	require_once MASWPCODE_PLUGIN_DIR . 'includes/class-maswpcode.php';
+	// require_once MASWPCODE_PLUGIN_DIR . 'includes/class-maswpcode-elementor.php';
 
 	// Register Elementor widgets and form actions
-	add_action('elementor/widgets/register', ['MASWPCode_Elementor', 'register_widgets']);
-	add_action('elementor_pro/forms/actions/register', ['MASWPCode_Elementor', 'register_form_actions']);
+	// add_action('elementor/widgets/register', ['MASWPCode_Elementor', 'register_widgets']);
+	// add_action('elementor_pro/forms/actions/register', ['MASWPCode_Elementor', 'register_form_actions']);
 
 	$plugin = new MASWPCode();
 	$plugin->run();
