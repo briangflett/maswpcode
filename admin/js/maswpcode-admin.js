@@ -29,4 +29,36 @@
 	 * practising this, we should strive to set a better example in our own work.
 	 */
 
-})( jQuery );
+    $(document).ready(function () {
+        $('.approve-submission').on('click', function () {
+            var button = $(this);
+            var submissionId = button.data('id');
+
+            button.text('Processing...').prop('disabled', true);
+
+            $.ajax({
+                url: maswpcode.ajaxurl,  // Provided via wp_localize_script in PHP
+                type: 'POST',
+                data: {
+                    action: 'maswpcode_approve_submission',
+                    submission_id: submissionId,
+                    nonce: maswpcode.nonce
+                },
+                success: function (response) {
+                    if (response.success) {
+                        button.text('Approved').addClass('disabled');
+                    } else {
+                        button.text('Approve').prop('disabled', false);
+                        alert(response.data.message);
+                    }
+                },
+                error: function () {
+                    button.text('Approve').prop('disabled', false);
+                    alert('Error processing submission.');
+                }
+            });
+        });
+    });
+
+})(jQuery);
+

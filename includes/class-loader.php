@@ -1,27 +1,25 @@
 <?php
 
 /**
- * Register all actions and filters for the plugin
- *
- * @link       https://www.linkedin.com/in/brian-flett-2a43691/?originalSubdomain=ca
- * @since      1.0.0
- *
- * @package    MASWPCode
- * @subpackage MASWPCode/includes
- */
-
-/**
  * Register all actions and filters for the plugin.
  *
  * Maintain a list of all hooks that are registered throughout
  * the plugin, and register them with the WordPress API. Call the
  * run function to execute the list of actions and filters.
  *
- * @package    MASWPCode
- * @subpackage MASWPCode/includes
+ * @link       https://github.com/briangflett/maswpcode
+ * @package    Maswpcode
+ * @subpackage Maswpcode/includes
  * @author     Brian Flett <brian.g.flett@gmail.com>
  */
-class MASWPCode_Loader {
+
+// Define plugin namespace
+namespace Maswpcode;
+if (!defined('ABSPATH')) {
+	exit; // Exit if accessed directly.
+}
+
+class Loader {
 
 	/**
 	 * The array of actions registered with WordPress.
