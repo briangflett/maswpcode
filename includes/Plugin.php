@@ -16,12 +16,16 @@
  * @author     Brian Flett <brian.g.flett@gmail.com>
  */
 
-// Define plugin namespace
 namespace Maswpcode;
 
 if (!defined('ABSPATH')) {
 	exit; // Exit if accessed directly.
 }
+
+use Maswpcode\Loader;
+use Maswpcode\I18n;
+use Maswpcode\Admin\Admin;
+use Maswpcode\Public\PublicArea;
 
 class Plugin
 {
@@ -54,6 +58,22 @@ class Plugin
 	protected $version;
 
 	/**
+	 * Singleton instance
+	 *
+	 * @since 3.0.0
+	 */
+	private static $instance = null;
+
+	public static function instance()
+	{
+		if (self::$instance == null) {
+			self::$instance = new self;
+		}
+
+		return self::$instance;
+	}
+
+	/**
 	 * Define the core functionality of the plugin.
 	 *
 	 * Set the plugin name and the plugin version that can be used throughout the plugin.
@@ -62,40 +82,45 @@ class Plugin
 	 *
 	 * @since    1.0.0
 	 */
-	public function __construct()
+	private function __construct()
 	{
 		$this->version = MASWPCODE_VERSION;
 		$this->plugin_name = 'maswpcode';
 
+		$this->check_elementor_pro();
 		$this->load_dependencies();
 		$this->set_locale();
-		$this->define_admin_hooks();
 		$this->define_public_hooks();
+		if (is_admin()) {
+			$this->define_admin_hooks();
+		}
+
+	}
+
+	/**
+	 * Check if Elementor Pro is activated.
+	 * Deactivates the plugin if missing.
+	 */
+	private function check_elementor_pro()
+	{
+		if (!did_action('elementor_pro/init')) {
+			add_action('admin_notices', function () {
+				echo '<div class="notice notice-error"><p>' . __('Maswpcode requires Elementor Pro to be installed and activated.', 'maswpcode') . '</p></div>';
+			});
+			error_log('Maswpcode deactivated: Elementor Pro is not installed or activated.');
+			deactivate_plugins(plugin_basename(__FILE__));
+		}
 	}
 
 	/**
 	 * Load the required dependencies for this plugin.
-	 *
-	 * Include the following files that make up the plugin:
-	 *
-	 * - Loader: Orchestrates the hooks of the plugin.
-	 * - i18n: Defines internationalization functionality.
-	 * - Admin: Defines all hooks for the admin area.
-	 * - PublicArea: Defines all hooks for the public side of the site.
-	 * - Elementor Form Action: Adds a custom form action to Elementor Pro.
 	 *
 	 * @since    1.0.0
 	 * @access   private
 	 */
 	private function load_dependencies()
 	{
-		require_once MASWPCODE_PLUGIN_DIR . 'includes/class-loader.php';
-		require_once MASWPCODE_PLUGIN_DIR . 'includes/class-i18n.php';
-		require_once MASWPCODE_PLUGIN_DIR . 'admin/class-admin.php';
-		require_once MASWPCODE_PLUGIN_DIR . 'public/class-public.php';
-		// require_once MASWPCODE_PLUGIN_DIR . 'public/class-elementor-form-action.php';
-
-		$this->loader = new \Maswpcode\Loader();
+		$this->loader = new Loader();
 	}
 
 	/**
@@ -104,9 +129,9 @@ class Plugin
 	 * @since    1.0.0
 	 * @access   private
 	 */
-	public function set_locale()
+	private function set_locale()
 	{
-		$plugin_i18n = new \Maswpcode\i18n();
+		$plugin_i18n = new I18n();
 		$this->loader->add_action('plugins_loaded', $plugin_i18n, 'load_plugin_textdomain');
 	}
 
@@ -116,9 +141,9 @@ class Plugin
 	 * @since    1.0.0
 	 * @access   private
 	 */
-	public function define_admin_hooks()
+	private function define_admin_hooks()
 	{
-		$plugin_admin = new \Maswpcode\Admin($this->get_plugin_name(), $this->get_version());
+		$plugin_admin = new Admin($this->get_plugin_name(), $this->get_version());
 		$this->loader->add_action('admin_enqueue_scripts', $plugin_admin, 'enqueue_styles');
 		$this->loader->add_action('admin_enqueue_scripts', $plugin_admin, 'enqueue_scripts');
 	}
@@ -129,23 +154,12 @@ class Plugin
 	 * @since    1.0.0
 	 * @access   private
 	 */
-	public function define_public_hooks()
+	private function define_public_hooks()
 	{
-		$plugin_public = new \Maswpcode\PublicArea($this->get_plugin_name(), $this->get_version());
+		$plugin_public = new PublicArea($this->get_plugin_name(), $this->get_version());
 		$this->loader->add_action('wp_enqueue_scripts', $plugin_public, 'enqueue_styles');
 		$this->loader->add_action('wp_enqueue_scripts', $plugin_public, 'enqueue_scripts');
 	}
-
-	// /**
-	//  * Register Elementor form actions.
-	//  *
-	//  * @since    1.0.0
-	//  */
-	// public function register_elementor_form_action($actions)
-	// {
-	// 	$actions['maswpcode_custom_action'] = new \Maswpcode\Elementor_Form_Action();
-	// 	return $actions;
-	// }
 
 	/**
 	 * Run the loader to execute all of the hooks with WordPress.
@@ -155,10 +169,6 @@ class Plugin
 	public function run()
 	{
 		$this->loader->run();
-		// add_action('init', [$this, 'set_locale']);
-		// add_action('admin_init', [$this, 'define_admin_hooks']);
-		// add_action('wp', [$this, 'define_public_hooks']);
-		// add_action('elementor_pro/forms/actions/register', [$this, 'register_elementor_form_action']);
 	}
 
 	/**

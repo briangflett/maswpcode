@@ -10,11 +10,14 @@
  * @author     Brian Flett <brian.g.flett@gmail.com>
  */
 
-namespace Maswpcode;
+namespace Maswpcode\Admin;
 
 if (!defined('ABSPATH')) {
     exit; // Exit if accessed directly.
 }
+
+use Maswpcode\Admin\Mas_Form_Processor;
+use Maswpcode\Admin\Ping;
 
 class Admin
 {
@@ -47,64 +50,8 @@ class Admin
     {
         $this->plugin_name = $plugin_name;
         $this->version = $version;
-        add_filter('elementor_pro/forms/admin/submissions/columns', [$this, 'add_approve_button_column']);
-        add_action('elementor_pro/forms/admin/submissions/column_data', [$this, 'render_approve_button'], 10, 2);
-        add_action('wp_ajax_maswpcode_approve_submission', [$this, 'approve_submission']);
-        add_action('admin_enqueue_scripts', [$this, 'enqueue_scripts']);
-    }
-
-    // Add a new column for the "Approve" button
-    public function add_approve_button_column($columns)
-    {
-        $columns['approve'] = 'Approve';
-        return $columns;
-    }
-
-    // Render the "Approve" button in each row
-    public function render_approve_button($column, $submission)
-    {
-        if ($column === 'approve') {
-            $submission_id = $submission->get_id();
-            $approved = get_post_meta($submission_id, '_maswpcode_approved', true);
-
-            if ($approved) {
-                echo '<button class="button disabled">Approved</button>';
-            } else {
-                echo '<button class="button approve-submission" data-id="' . esc_attr($submission_id) . '">Approve</button>';
-            }
-        }
-    }
-
-    // Handle AJAX request to approve the submission
-    public function approve_submission()
-    {
-        check_ajax_referer('maswpcode_nonce', 'nonce');
-
-        $submission_id = intval($_POST['submission_id']);
-        if (!$submission_id) {
-            wp_send_json_error(['message' => 'Invalid submission ID']);
-        }
-
-        // Fetch submission data
-        $submission = get_post($submission_id);
-        $form_data = get_post_meta($submission_id, '_elementor_form_data', true);
-
-        // Send data to CiviCRM (implement your logic here)
-        $result = $this->send_to_civicrm($form_data);
-
-        if ($result) {
-            update_post_meta($submission_id, '_maswpcode_approved', true);
-            wp_send_json_success(['message' => 'Approved successfully']);
-        } else {
-            wp_send_json_error(['message' => 'Failed to send to CiviCRM']);
-        }
-    }
-
-    // Function to send data to CiviCRM
-    private function send_to_civicrm($form_data)
-    {
-        // Implement API integration here (e.g., CiviCRM API call)
-        return true; // Return true on success, false on failure
+        add_action('elementor_pro/forms/actions/register', [$this, 'add_new_ping_action']);
+        add_action('elementor_pro/forms/actions/register', [$this, 'mas_form_processor']);
     }
 
     /**
@@ -150,10 +97,32 @@ class Admin
          * wp_enqueue_script($this->plugin_name, plugin_dir_url(__FILE__) . 'js/maswpcode-admin.js', array('jquery'), $this->version, false);
          */
 
-        wp_enqueue_script('maswpcode-admin', MASWPCODE_PLUGIN_DIR . 'admin/js/maswpcode-admin.js', ['jquery'], '1.0.0', true);
-        wp_localize_script('maswpcode-admin', 'maswpcode', [
-            'nonce' => wp_create_nonce('maswpcode_nonce'),
-            'ajaxurl' => admin_url('admin-ajax.php')
-        ]);
+        // wp_enqueue_script('maswpcode-admin', MASWPCODE_PLUGIN_DIR . 'admin/js/maswpcode-admin.js', ['jquery'], '1.0.0', true);
+        // wp_localize_script('maswpcode-admin', 'maswpcode', [
+        //     'nonce' => wp_create_nonce('maswpcode_nonce'),
+        //     'ajaxurl' => admin_url('admin-ajax.php')
+        // ]);
+    }
+
+    /**
+     * Add new form action after form submission.
+     *
+     * @since 1.0.0
+     * @param ElementorPro\Modules\Forms\Registrars\Form_Actions_Registrar $form_actions_registrar
+     * @return void
+     */
+    public function add_new_ping_action($form_actions_registrar)
+    {
+
+        include_once(__DIR__ .  '/ping.php');
+
+        $form_actions_registrar->register(new Ping());
+    }
+    public function mas_form_processor($form_actions_registrar)
+    {
+
+        include_once(__DIR__ .  '/mas-form-processor.php');
+
+        $form_actions_registrar->register(new Mas_Form_Processor());
     }
 }

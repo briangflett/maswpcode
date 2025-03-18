@@ -20,68 +20,36 @@
  * Domain Path:       /languages
  */
 
-// Define plugin namespace
-namespace Maswpcode;
-
 // Exit if accessed directly.
-if (!defined('WPINC')) {
+if (!defined('ABSPATH')) {
 	exit;
 }
 
-// Define the plugin version at the root level
+// Define the plugin constants
 define('MASWPCODE_VERSION', '1.0.0');
 define('MASWPCODE_PLUGIN_DIR', plugin_dir_path(__FILE__));
+define('MASWPCODE_PLUGIN_FILE', __FILE__);
+define('MASWPCODE_PLUGIN_URL', plugin_dir_url(__FILE__));
 
-/**
- * Check if Elementor Pro is activated.
- * Deactivates the plugin if missing.
- */
-function check_elementor_pro()
-{
-	if (!did_action('elementor_pro/init')) {
-		add_action('admin_notices', function () {
-			echo '<div class="notice notice-error"><p>' . __('Maswpcode requires Elementor Pro to be installed and activated.', 'maswpcode') . '</p></div>';
-		});
-		error_log('Maswpcode deactivated: Elementor Pro is not installed or activated.');
-		deactivate_plugins(plugin_basename(__FILE__));
-	}
-}
-add_action('admin_init', 'Maswpcode\check_elementor_pro');
+// Including autoloader
+require_once MASWPCODE_PLUGIN_DIR . 'autoload.php';
 
-/**
- * The code that runs during plugin activation.
- */
-function activate()
-{
-	require_once MASWPCODE_PLUGIN_DIR . 'includes/class-activator.php';
-	\Maswpcode\Activator::activate();
-}
+// Use namespaced classes
+use Maswpcode\Plugin;
+use Maswpcode\Activator;
+use Maswpcode\Deactivator;
 
-/**
- * The code that runs during plugin deactivation.
- */
-function deactivate()
-{
-	require_once MASWPCODE_PLUGIN_DIR . 'includes/class-deactivator.php';
-	\Maswpcode\Deactivator::deactivate();
-}
+// Initialize plugin on `plugins_loaded`
+add_action('plugins_loaded', function () {
+	Plugin::instance();
+});
 
-register_activation_hook(__FILE__, 'Maswpcode\activate');
-register_deactivation_hook(__FILE__, 'Maswpcode\deactivate');
+// Register activation & deactivation hooks
+register_activation_hook(__FILE__, function () {
+	Activator::activate();
+});
 
-/**
- * The core plugin class that initializes the plugin.
- */
-require MASWPCODE_PLUGIN_DIR . 'includes/class-plugin.php';
+register_deactivation_hook(__FILE__, function () {
+	Deactivator::deactivate();
+});
 
-/**
- * Begin plugin execution.
- */
-function run()
-{
-	$plugin = new \Maswpcode\Plugin();
-	$plugin->run();
-}
-
-// Ensure this runs after Elementor (priority 20)
-add_action('plugins_loaded', 'Maswpcode\run', 20);

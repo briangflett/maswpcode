@@ -10,7 +10,7 @@
  * @author     Brian Flett <brian.g.flett@gmail.com>
  */
 
-namespace Maswpcode;
+namespace Maswpcode\Public;
 
 if (!defined('ABSPATH')) {
     exit; // Exit if accessed directly.
