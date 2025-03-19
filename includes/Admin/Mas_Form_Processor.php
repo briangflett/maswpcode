@@ -56,19 +56,19 @@ class Mas_Form_Processor extends \ElementorPro\Modules\Forms\Classes\Action_Base
      */
     public function run($record, $ajax_handler): void
     {
+        global $wpdb;
+
         // Get submitted form data.
-        $raw_fields = $record->get('fields');
-        xdebug_break();
+        $form_id = $record->get_form_settings('form_id');
+        $formatted_fields = $record->get_formatted_data();
+        $field_data_json = json_encode($formatted_fields);
 
-        // Normalize form data.
-        $fields = [];
-        $fields['welcomeback'] = null;
-        $fields['hear_about_us'] = null;
-        foreach ($raw_fields as $id => $field) {
-            $fields[$id] = $field['value'];
-        }
+        // civicrm_api3('FormProcessor', 'request_for_assistance', $fields);
 
-        civicrm_api3('FormProcessor', 'request_for_assistance', $fields);
+        $results = \Civi\Api4\MascodeSubmission::create(TRUE)
+            ->addValue('form_id', $form_id)
+            ->addValue('field_data', $field_data_json)
+            ->execute();
     }
 
     /**

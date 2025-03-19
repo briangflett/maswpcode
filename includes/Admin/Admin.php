@@ -113,16 +113,10 @@ class Admin
      */
     public function add_new_ping_action($form_actions_registrar)
     {
-
-        include_once(__DIR__ .  '/ping.php');
-
         $form_actions_registrar->register(new Ping());
     }
     public function mas_form_processor($form_actions_registrar)
     {
-
-        include_once(__DIR__ .  '/mas-form-processor.php');
-
         $form_actions_registrar->register(new Mas_Form_Processor());
     }
 }
