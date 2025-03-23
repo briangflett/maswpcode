@@ -87,30 +87,30 @@ class Plugin
 		$this->version = MASWPCODE_VERSION;
 		$this->plugin_name = 'maswpcode';
 
-		$this->check_elementor_pro();
+// 		$this->check_elementor_pro();
 		$this->load_dependencies();
 		$this->set_locale();
 		$this->define_public_hooks();
 		if (is_admin()) {
 			$this->define_admin_hooks();
 		}
-
+		$this->loader->run();
 	}
 
 	/**
 	 * Check if Elementor Pro is activated.
 	 * Deactivates the plugin if missing.
 	 */
-	private function check_elementor_pro()
-	{
-		if (!did_action('elementor_pro/init')) {
-			add_action('admin_notices', function () {
-				echo '<div class="notice notice-error"><p>' . __('Maswpcode requires Elementor Pro to be installed and activated.', 'maswpcode') . '</p></div>';
-			});
-			error_log('Maswpcode deactivated: Elementor Pro is not installed or activated.');
-			deactivate_plugins(plugin_basename(__FILE__));
-		}
-	}
+	// private function check_elementor_pro()
+	// {
+	// 	if (!did_action('elementor_pro/init')) {
+	// 		add_action('admin_notices', function () {
+	// 			echo '<div class="notice notice-error"><p>' . __('Maswpcode requires Elementor Pro to be installed and activated.', 'maswpcode') . '</p></div>';
+	// 		});
+	// 		error_log('Maswpcode deactivated: Elementor Pro is not installed or activated.');
+	// 		deactivate_plugins(plugin_basename(MASWPCODE_PLUGIN_FILE));
+	// 	}
+	// }
 
 	/**
 	 * Load the required dependencies for this plugin.

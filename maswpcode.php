@@ -31,6 +31,14 @@ define('MASWPCODE_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('MASWPCODE_PLUGIN_FILE', __FILE__);
 define('MASWPCODE_PLUGIN_URL', plugin_dir_url(__FILE__));
 
+// Require Elementor Pro
+if (!did_action('elementor_pro/init')) {
+	add_action('admin_notices', function () {
+		echo '<div class="notice notice-error"><p>' . __('Maswpcode requires Elementor Pro.', 'maswpcode') . '</p></div>';
+	});
+	return;
+}
+
 // Including autoloader
 require_once MASWPCODE_PLUGIN_DIR . 'autoload.php';
 
@@ -52,4 +60,3 @@ register_activation_hook(__FILE__, function () {
 register_deactivation_hook(__FILE__, function () {
 	Deactivator::deactivate();
 });
-

@@ -111,11 +111,11 @@ class Admin
      * @param ElementorPro\Modules\Forms\Registrars\Form_Actions_Registrar $form_actions_registrar
      * @return void
      */
-    public function add_new_ping_action($form_actions_registrar)
+    public function add_new_ping_action(\ElementorPro\Modules\Forms\Registrars\Form_Actions_Registrar $form_actions_registrar)
     {
         $form_actions_registrar->register(new Ping());
     }
-    public function mas_form_processor($form_actions_registrar)
+    public function mas_form_processor(\ElementorPro\Modules\Forms\Registrars\Form_Actions_Registrar $form_actions_registrar)
     {
         $form_actions_registrar->register(new Mas_Form_Processor());
     }
