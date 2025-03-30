@@ -18,7 +18,7 @@ function mas_form_processor($form_actions_registrar)
 
     include_once(__DIR__ .  '/form-actions/Mas_Form_Processor.php');
 
-    $form_actions_registrar->register(new Maswpcodef\Mas_Form_Processor());
+    $form_actions_registrar->register(new Maswpcode\Mas_Form_Processor());
 }
 
 add_action('elementor_pro/forms/actions/register', 'mas_form_processor');
