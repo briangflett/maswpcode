@@ -1,12 +1,12 @@
 <?php
 
 /**
- * Plugin Name: Maswpcode Simple
+ * Plugin Name: Maswpcode
  * Description: Simplified WordPress custom code developed for http://www.masadvise.org
  * Version:     1.0.0
  * Author:      Brian Flett
  * Author URI:  https://www.linkedin.com/in/brian-flett-2a43691/?originalSubdomain=ca/
- * Text Domain: maswpcode-simple
+ * Text Domain: maswpcode
  *
  * Requires Plugins: elementor
  * Elementor tested up to: 3.27.6
