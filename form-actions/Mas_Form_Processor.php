@@ -98,10 +98,7 @@ class Mas_Form_Processor extends \ElementorPro\Modules\Forms\Classes\Action_Base
             try {
                 // Log the raw data being passed
                 error_log('[maswpcode] Submitting FormProcessor with fields: ' . print_r($mapped_fields, true));
-                $result = civicrm_api3('FormProcessor', 'submit', [
-                    'form_processor_id' => 'request_for_assistance',
-                    'values' => $mapped_fields,
-                ]);
+                $result = civicrm_api3('FormProcessor', $form_id, $mapped_fields);
                 // Log the result for visibility
                 error_log('[maswpcode] FormProcessor.submit result: ' . print_r($result, true));
             } catch (\Exception $e) {
