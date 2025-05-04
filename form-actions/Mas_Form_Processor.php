@@ -89,12 +89,6 @@ class Mas_Form_Processor extends \ElementorPro\Modules\Forms\Classes\Action_Base
                         : $field['value'];
                 }
             }
-            // try {
-            //     $result = civicrm_api3('FormProcessor', 'request_for_assistance', $mapped_fields);
-            // } catch (\Exception $e) {
-            //     error_log('[maswpcode] API Error: ' . $e->getMessage());
-            //     exit;
-            // };
             try {
                 // Log the raw data being passed
                 error_log('[maswpcode] Submitting FormProcessor with fields: ' . print_r($mapped_fields, true));
