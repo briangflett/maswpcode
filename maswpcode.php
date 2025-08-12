@@ -1,19 +1,13 @@
-<<?php
+<?php
 
 /**
  * Plugin Name: Maswpcode
- * Description: Simplified WordPress custom code developed for http://www.masadvise.org
+ * Description: form processing + private page redirect
  * Version:     1.0.1
  * Author:      Brian Flett
- * Author URI:  https://www.linkedin.com/in/brian-flett-2a43691/?originalSubdomain=ca/
- * Text Domain: maswpcode
- *
- * Requires Plugins: elementor
- * Elementor tested up to: 3.27.6
- * Elementor Pro tested up to: 3.26.2
  */
 
-// Existing form processor functionality
+// Form processor functionality
 function mas_form_processor($form_actions_registrar)
 {
     include_once(__DIR__ .  '/form-actions/Mas_Form_Processor.php');
@@ -21,63 +15,77 @@ function mas_form_processor($form_actions_registrar)
 }
 add_action('elementor_pro/forms/actions/register', 'mas_form_processor');
 
-// NEW: Login redirect functionality for private pages
+// Private page redirect functionality - safe version
 function mas_redirect_private_pages_to_login()
 {
-    // Only run on front-end, not admin
-    if (is_admin()) {
+    // Skip admin, AJAX, REST API, and cron contexts
+    if (is_admin() || 
+        wp_doing_ajax() || 
+        (defined('REST_REQUEST') && REST_REQUEST) ||
+        (defined('DOING_CRON') && DOING_CRON) ||
+        is_user_logged_in()) {
+        return;
+    }
+    
+    // Skip for admin-related URLs and actions
+    if (isset($_SERVER['REQUEST_URI']) && (
+        strpos($_SERVER['REQUEST_URI'], '/wp-admin/') !== false ||
+        strpos($_SERVER['REQUEST_URI'], '/wp-json/') !== false ||
+        strpos($_SERVER['REQUEST_URI'], 'admin-ajax.php') !== false ||
+        strpos($_SERVER['REQUEST_URI'], 'elementor') !== false ||
+        strpos($_SERVER['REQUEST_URI'], 'wp-login.php') !== false
+    )) {
+        return;
+    }
+    
+    // Skip for any actions at all (this protects AJAX requests)
+    if (isset($_REQUEST['action']) || isset($_POST['action']) || isset($_GET['action'])) {
         return;
     }
 
-    // Check if user is not logged in
-    if (!is_user_logged_in()) {
-        global $post, $wpdb;
+    global $post, $wpdb;
 
-        // First check if we have a post object and it's private
-        if (is_singular() && $post && $post->post_status === 'private') {
-            // Get the current URL for redirect after login
+    // First check if we have a post object and it's private
+    if (is_singular() && $post && $post->post_status === 'private') {
+        $redirect_url = home_url($_SERVER['REQUEST_URI']);
+        $login_url = wp_login_url($redirect_url);
+        wp_redirect($login_url);
+        exit;
+    }
+
+    // For cases where page shows 404 but exists as private, check URL path directly
+    $request_uri = trim($_SERVER['REQUEST_URI'], '/');
+    if (!empty($request_uri)) {
+        $path_parts = explode('/', $request_uri);
+        $page_slug = $path_parts[0];
+
+        $private_page = $wpdb->get_row($wpdb->prepare(
+            "SELECT ID FROM {$wpdb->posts} WHERE post_name = %s AND post_status = 'private' AND post_type = 'page'",
+            $page_slug
+        ));
+
+        if ($private_page) {
             $redirect_url = home_url($_SERVER['REQUEST_URI']);
-
-            // Build login URL with redirect parameter
             $login_url = wp_login_url($redirect_url);
-
-            // Perform the redirect
             wp_redirect($login_url);
             exit;
-        }
-
-        // If no post object, check the URL path directly for private pages
-        $request_uri = trim($_SERVER['REQUEST_URI'], '/');
-        if (!empty($request_uri)) {
-            // Extract the page slug from the URL
-            $path_parts = explode('/', $request_uri);
-            $page_slug = $path_parts[0];
-
-            // Query for a private page with this slug
-            $private_page = $wpdb->get_row($wpdb->prepare(
-                "SELECT ID FROM {$wpdb->posts} WHERE post_name = %s AND post_status = 'private' AND post_type = 'page'",
-                $page_slug
-            ));
-
-            if ($private_page) {
-                // Get the current URL for redirect after login
-                $redirect_url = home_url($_SERVER['REQUEST_URI']);
-
-                // Build login URL with redirect parameter
-                $login_url = wp_login_url($redirect_url);
-
-                // Perform the redirect
-                wp_redirect($login_url);
-                exit;
-            }
         }
     }
 }
 add_action('template_redirect', 'mas_redirect_private_pages_to_login');
 
-// Custom login screen functionality
+// Custom login screen functionality - ONLY on actual login page
 function mas_custom_login_styles()
 {
+    // Triple-check we're only on the actual login page
+    if (!isset($GLOBALS['pagenow']) || $GLOBALS['pagenow'] !== 'wp-login.php') {
+        return;
+    }
+    
+    // Additional safety checks
+    if (is_admin() || wp_doing_ajax() || (defined('REST_REQUEST') && REST_REQUEST)) {
+        return;
+    }
     ?>
     <style type="text/css">
         body.login {
@@ -169,12 +177,6 @@ function mas_custom_login_styles()
             font-size: 14px;
         }
         
-        .mas-wordpress-section {
-            border-top: 1px solid #eee;
-            padding-top: 20px;
-            margin-top: 20px;
-        }
-        
         .mas-wordpress-toggle {
             background: #f8f9fa;
             border: 1px solid #ddd;
@@ -200,34 +202,21 @@ function mas_custom_login_styles()
             display: block;
         }
     </style>
-    <script type="text/javascript">
-        function initMasWordPressToggle() {
-            const toggle = document.querySelector('.mas-wordpress-toggle');
-            const form = document.querySelector('.mas-wordpress-form');
-            
-            if (toggle && form) {
-                toggle.addEventListener('click', function() {
-                    form.classList.toggle('active');
-                    this.textContent = form.classList.contains('active') ? 
-                        'Hide WordPress Login' : 'Sign in with WordPress Account';
-                });
-            } else {
-                // Try again in 100ms if elements aren't ready
-                setTimeout(initMasWordPressToggle, 100);
-            }
-        }
-        
-        document.addEventListener('DOMContentLoaded', initMasWordPressToggle);
-        
-        // Also try after a short delay in case DOM is already loaded
-        setTimeout(initMasWordPressToggle, 100);
-    </script>
     <?php
 }
-add_action('login_head', 'mas_custom_login_styles');
 
 function mas_custom_login_message($message)
 {
+    // Triple-check we're only on the actual login page
+    if (!isset($GLOBALS['pagenow']) || $GLOBALS['pagenow'] !== 'wp-login.php') {
+        return $message;
+    }
+    
+    // Additional safety checks
+    if (is_admin() || wp_doing_ajax() || (defined('REST_REQUEST') && REST_REQUEST)) {
+        return $message;
+    }
+    
     if (empty($message)) {
         // Generate WPO365 Microsoft OAuth URL with redirect back to requested page
         $redirect_to = isset($_GET['redirect_to']) ? $_GET['redirect_to'] : home_url('/vcportal/');
@@ -261,22 +250,44 @@ function mas_custom_login_message($message)
     }
     return $message;
 }
-add_filter('login_message', 'mas_custom_login_message');
 
 function mas_wrap_wordpress_login_form()
 {
+    // Triple-check we're only on the actual login page
+    if (!isset($GLOBALS['pagenow']) || $GLOBALS['pagenow'] !== 'wp-login.php') {
+        return;
+    }
+    
+    // Additional safety checks
+    if (is_admin() || wp_doing_ajax() || (defined('REST_REQUEST') && REST_REQUEST)) {
+        return;
+    }
+    
     ?>
     <script type="text/javascript">
+        function initMasWordPressToggle() {
+            const toggle = document.querySelector('.mas-wordpress-toggle');
+            const form = document.querySelector('.mas-wordpress-form');
+            
+            if (toggle && form) {
+                toggle.addEventListener('click', function() {
+                    form.classList.toggle('active');
+                    this.textContent = form.classList.contains('active') ? 
+                        'Hide WordPress Login' : 'Sign in with WordPress Account';
+                });
+            } else {
+                setTimeout(initMasWordPressToggle, 100);
+            }
+        }
+        
         function wrapWordPressForm() {
             const loginForm = document.getElementById('loginform');
             if (loginForm && !loginForm.closest('.mas-wordpress-form')) {
-                // Wrap the WordPress login form
                 const wrapper = document.createElement('div');
                 wrapper.className = 'mas-wordpress-form';
                 loginForm.parentNode.insertBefore(wrapper, loginForm);
                 wrapper.appendChild(loginForm);
                 
-                // Move related elements inside the wrapper
                 const rememberMe = document.querySelector('.forgetmenot');
                 const submitButton = document.querySelector('.submit');
                 const nav = document.querySelector('#nav');
@@ -287,10 +298,8 @@ function mas_wrap_wordpress_login_form()
                 if (nav) wrapper.appendChild(nav);
                 if (backtoblog) wrapper.appendChild(backtoblog);
                 
-                // Initialize the toggle functionality
                 initMasWordPressToggle();
             } else if (!loginForm) {
-                // Try again if form isn't ready
                 setTimeout(wrapWordPressForm, 100);
             }
         }
@@ -300,4 +309,14 @@ function mas_wrap_wordpress_login_form()
     </script>
     <?php
 }
-add_action('login_footer', 'mas_wrap_wordpress_login_form');
+
+// Only add login hooks when we're actually on the login page
+function mas_maybe_add_login_hooks() {
+    if (isset($GLOBALS['pagenow']) && $GLOBALS['pagenow'] === 'wp-login.php' && 
+        !is_admin() && !wp_doing_ajax() && !(defined('REST_REQUEST') && REST_REQUEST)) {
+        add_action('login_head', 'mas_custom_login_styles');
+        add_filter('login_message', 'mas_custom_login_message');
+        add_action('login_footer', 'mas_wrap_wordpress_login_form');
+    }
+}
+add_action('init', 'mas_maybe_add_login_hooks');
