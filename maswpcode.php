@@ -15,66 +15,74 @@ function mas_form_processor($form_actions_registrar)
 }
 add_action('elementor_pro/forms/actions/register', 'mas_form_processor');
 
-// Private page redirect functionality - safe version
+// Private page redirect functionality - WordPress native approach
 function mas_redirect_private_pages_to_login()
 {
+    // Only proceed if user is not logged in
+    if (is_user_logged_in()) {
+        return;
+    }
+    
     // Skip admin, AJAX, REST API, and cron contexts
     if (is_admin() || 
         wp_doing_ajax() || 
         (defined('REST_REQUEST') && REST_REQUEST) ||
-        (defined('DOING_CRON') && DOING_CRON) ||
-        is_user_logged_in()) {
+        (defined('DOING_CRON') && DOING_CRON)) {
         return;
     }
     
-    // Skip for admin-related URLs and actions
-    if (isset($_SERVER['REQUEST_URI']) && (
-        strpos($_SERVER['REQUEST_URI'], '/wp-admin/') !== false ||
-        strpos($_SERVER['REQUEST_URI'], '/wp-json/') !== false ||
-        strpos($_SERVER['REQUEST_URI'], 'admin-ajax.php') !== false ||
-        strpos($_SERVER['REQUEST_URI'], 'elementor') !== false ||
-        strpos($_SERVER['REQUEST_URI'], 'wp-login.php') !== false
-    )) {
+    // Skip WPO365 authentication flows
+    if (isset($_GET['action']) && $_GET['action'] === 'openidredirect') {
         return;
     }
     
-    // Skip for any actions at all (this protects AJAX requests)
-    if (isset($_REQUEST['action']) || isset($_POST['action']) || isset($_GET['action'])) {
+    // Skip Microsoft login callback parameters
+    if (isset($_GET['code']) || isset($_GET['state']) || isset($_GET['session_state'])) {
         return;
     }
-
+    
+    // Skip login page itself
+    if (strpos($_SERVER['REQUEST_URI'], 'wp-login.php') !== false) {
+        return;
+    }
+    
     global $post, $wpdb;
 
-    // First check if we have a post object and it's private
+    // Check if current page/post is private (when WordPress has loaded it)
     if (is_singular() && $post && $post->post_status === 'private') {
         $redirect_url = home_url($_SERVER['REQUEST_URI']);
         $login_url = wp_login_url($redirect_url);
         wp_redirect($login_url);
         exit;
     }
+    
+    // For 404 cases, check if the URL path corresponds to a private page
+    if (is_404()) {
+        $request_uri = trim($_SERVER['REQUEST_URI'], '/');
+        if (!empty($request_uri)) {
+            // Get the first part of the URL path (the page slug)
+            $path_parts = explode('/', $request_uri);
+            $page_slug = $path_parts[0];
 
-    // For cases where page shows 404 but exists as private, check URL path directly
-    $request_uri = trim($_SERVER['REQUEST_URI'], '/');
-    if (!empty($request_uri)) {
-        $path_parts = explode('/', $request_uri);
-        $page_slug = $path_parts[0];
+            // Check if a private page exists with this slug
+            $private_page = $wpdb->get_row($wpdb->prepare(
+                "SELECT ID FROM {$wpdb->posts} WHERE post_name = %s AND post_status = 'private' AND post_type = 'page'",
+                $page_slug
+            ));
 
-        $private_page = $wpdb->get_row($wpdb->prepare(
-            "SELECT ID FROM {$wpdb->posts} WHERE post_name = %s AND post_status = 'private' AND post_type = 'page'",
-            $page_slug
-        ));
-
-        if ($private_page) {
-            $redirect_url = home_url($_SERVER['REQUEST_URI']);
-            $login_url = wp_login_url($redirect_url);
-            wp_redirect($login_url);
-            exit;
+            if ($private_page) {
+                $redirect_url = home_url($_SERVER['REQUEST_URI']);
+                $login_url = wp_login_url($redirect_url);
+                wp_redirect($login_url);
+                exit;
+            }
         }
     }
 }
 add_action('template_redirect', 'mas_redirect_private_pages_to_login');
 
-// Custom login screen functionality - ONLY on actual login page
+// Custom login screen functionality - COMMENTED OUT FOR TESTING
+/*
 function mas_custom_login_styles()
 {
     // Triple-check we're only on the actual login page
@@ -204,7 +212,9 @@ function mas_custom_login_styles()
     </style>
     <?php
 }
+*/
 
+/*
 function mas_custom_login_message($message)
 {
     // Triple-check we're only on the actual login page
@@ -220,7 +230,14 @@ function mas_custom_login_message($message)
     if (empty($message)) {
         // Generate WPO365 Microsoft OAuth URL with redirect back to requested page
         $redirect_to = isset($_GET['redirect_to']) ? $_GET['redirect_to'] : home_url('/vcportal/');
-        $microsoft_signin_url = home_url('/?action=openidredirect&redirect_to=' . urlencode($redirect_to));
+        
+        // Use the proper WPO365 login trigger - check if WPO365 is active first
+        if (class_exists('Wpo\Services\Authentication_Service')) {
+            $microsoft_signin_url = home_url('/?action=openidredirect&redirect_to=' . urlencode($redirect_to));
+        } else {
+            // Fallback if WPO365 not available
+            $microsoft_signin_url = home_url('/wp-admin/') . '?wpo365_login=1&redirect_to=' . urlencode($redirect_to);
+        }
         
         $custom_message = '
         <div class="mas-custom-login">
@@ -250,7 +267,9 @@ function mas_custom_login_message($message)
     }
     return $message;
 }
+*/
 
+/*
 function mas_wrap_wordpress_login_form()
 {
     // Triple-check we're only on the actual login page
@@ -320,3 +339,55 @@ function mas_maybe_add_login_hooks() {
     }
 }
 add_action('init', 'mas_maybe_add_login_hooks');
+*/
+
+// Login page customization using WordPress native hooks
+function mas_add_login_message($message)
+{
+    // Only add message on the login page (not registration, lost password, etc.)
+    if (isset($_GET['action'])) {
+        return $message;
+    }
+    
+    $custom_message = '<div class="mas-signin-text" style="background: #f0f6fc; border: 1px solid #c3d4e8; border-radius: 6px; padding: 15px; margin: 20px 0; text-align: center; color: #0f4c75; font-size: 14px; line-height: 1.5;">
+        Click the <strong>Sign in with Microsoft</strong> button below.<br>
+        On the following screen sign in with your <strong>firstname.lastname@masadvise.org</strong> account.<br>
+        Contact <a href="mailto:brian.flett@masadvise.org" style="color: #0078d4; text-decoration: none;">brian.flett@masadvise.org</a> if you do not have an account.
+    </div>';
+    
+    return $custom_message . $message;
+}
+add_filter('login_message', 'mas_add_login_message');
+
+// Add minimal styling to login page
+function mas_add_login_styles()
+{
+    ?>
+    <style type="text/css">
+        /* Improve overall login page appearance */
+        body.login {
+            background: #f1f1f1;
+        }
+        
+        /* Style the login form container */
+        .login form {
+            margin-top: 20px;
+            margin-bottom: 20px;
+            background: #fff;
+            border: 1px solid #ddd;
+            box-shadow: 0 1px 3px rgba(0,0,0,.1);
+        }
+        
+        /* Ensure message styling looks good */
+        .mas-signin-text a:hover {
+            text-decoration: underline !important;
+        }
+        
+        /* Style WPO365 login button if present */
+        .wpo365-button {
+            margin-top: 15px;
+        }
+    </style>
+    <?php
+}
+add_action('login_head', 'mas_add_login_styles');
