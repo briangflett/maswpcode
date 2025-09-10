@@ -143,12 +143,77 @@ function modify_category_search_query($query)
                 $child_categories = get_term_children($category->term_id, 'category');
                 $all_categories = array_merge(array($category->term_id), $child_categories);
 
-                $query->set('category__in', $all_categories);
-                $query->set('s', ''); // Remove any text search
+                // Debug logging
+                // error_log("Category Search Debug:");
+                // error_log("Category: " . $category->name . " (ID: " . $category->term_id . ")");
+                // error_log("Child categories: " . print_r($child_categories, true));
+                // error_log("All categories: " . print_r($all_categories, true));
+
+                // Completely replace the query with our category search
+                $query->init();
+                $query->set('tax_query', array(
+                    array(
+                        'taxonomy' => 'category',
+                        'field'    => 'term_id',
+                        'terms'    => $all_categories,
+                        'operator' => 'IN'
+                    )
+                ));
                 $query->set('post_type', 'post');
                 $query->set('post_status', 'publish');
+                $query->set('posts_per_page', 10);
+                $query->set('paged', 1);
+
+                // Clear any conflicting query vars
+                $query->set('p', '');
+                $query->set('page_id', '');
+                $query->set('name', '');
+                $query->set('pagename', '');
+
+                // Set query flags
+                $query->is_home = false;
+                $query->is_front_page = false;
+                $query->is_page = false;
+                $query->is_single = false;
+                $query->is_archive = true;
+                $query->is_category = true;
+                $query->is_404 = false;
+
+                // Set the queried object
+                $query->queried_object = $category;
+                $query->queried_object_id = $category->term_id;
             }
         }
     }
 }
 add_action('pre_get_posts', 'modify_category_search_query');
+
+// Add rewrite rule for category search
+function add_category_search_rewrite_rule()
+{
+    add_rewrite_rule('^category-search/?$', 'index.php?category_search_page=1', 'top');
+    add_rewrite_tag('%category_search_page%', '([^&]+)');
+}
+add_action('init', 'add_category_search_rewrite_rule');
+
+// Handle category search page template
+function handle_category_search_template($template)
+{
+    if (get_query_var('category_search_page')) {
+        // Use the index template for now
+        return get_home_template();
+    }
+    return $template;
+}
+add_filter('template_include', 'handle_category_search_template');
+
+// Prevent 404 status for category search with no results
+function prevent_category_search_404($preempt, $wp_query)
+{
+    if (isset($_GET['category_search']) && isset($_GET['include_children'])) {
+        status_header(200);
+        return true;
+    }
+    return $preempt;
+}
+add_filter('pre_handle_404', 'prevent_category_search_404', 10, 2);
