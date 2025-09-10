@@ -149,8 +149,7 @@ function modify_category_search_query($query)
                 // error_log("Child categories: " . print_r($child_categories, true));
                 // error_log("All categories: " . print_r($all_categories, true));
 
-                // Completely replace the query with our category search
-                $query->init();
+                // Modify the existing query instead of completely replacing it
                 $query->set('tax_query', array(
                     array(
                         'taxonomy' => 'category',
@@ -162,15 +161,15 @@ function modify_category_search_query($query)
                 $query->set('post_type', 'post');
                 $query->set('post_status', 'publish');
                 $query->set('posts_per_page', 10);
-                $query->set('paged', 1);
 
-                // Clear any conflicting query vars
-                $query->set('p', '');
-                $query->set('page_id', '');
+                // Clear conflicting query vars that might interfere
+                $query->set('p', 0);
+                $query->set('page_id', 0);
                 $query->set('name', '');
                 $query->set('pagename', '');
+                $query->set('s', '');
 
-                // Set query flags
+                // Set query flags properly
                 $query->is_home = false;
                 $query->is_front_page = false;
                 $query->is_page = false;
@@ -182,6 +181,11 @@ function modify_category_search_query($query)
                 // Set the queried object
                 $query->queried_object = $category;
                 $query->queried_object_id = $category->term_id;
+                
+                // Ensure query_vars is properly initialized
+                if (!is_array($query->query_vars)) {
+                    $query->query_vars = array();
+                }
             }
         }
     }
