@@ -15,6 +15,28 @@ function mas_form_processor($form_actions_registrar)
 }
 add_action('elementor_pro/forms/actions/register', 'mas_form_processor');
 
+// Allow all logged-in users to view private pages regardless of role
+function mas_allow_private_page_access($allcaps, $caps, $args)
+{
+    // Only apply to logged-in users
+    if (!is_user_logged_in()) {
+        return $allcaps;
+    }
+
+    // Check if this is a request to read a private page
+    if (isset($args[0]) && $args[0] === 'read_private_pages') {
+        $allcaps['read_private_pages'] = true;
+    }
+
+    // Also allow reading private posts
+    if (isset($args[0]) && $args[0] === 'read_private_posts') {
+        $allcaps['read_private_posts'] = true;
+    }
+
+    return $allcaps;
+}
+add_filter('user_has_cap', 'mas_allow_private_page_access', 10, 3);
+
 // Private page redirect functionality - WordPress native approach
 function mas_redirect_private_pages_to_login()
 {
