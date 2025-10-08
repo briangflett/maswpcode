@@ -37,6 +37,25 @@ function mas_allow_private_page_access($allcaps, $caps, $args)
 }
 add_filter('user_has_cap', 'mas_allow_private_page_access', 10, 3);
 
+// Make WordPress query private pages for logged-in users
+function mas_include_private_pages_in_query($query)
+{
+    // Only for logged-in users on the frontend
+    if (!is_admin() && is_user_logged_in() && $query->is_main_query()) {
+        // If querying for a page, include private status
+        if ($query->get('post_type') === 'page' || $query->is_page()) {
+            $post_status = $query->get('post_status');
+            if (empty($post_status)) {
+                $query->set('post_status', array('publish', 'private'));
+            } elseif (is_array($post_status) && !in_array('private', $post_status)) {
+                $post_status[] = 'private';
+                $query->set('post_status', $post_status);
+            }
+        }
+    }
+}
+add_action('pre_get_posts', 'mas_include_private_pages_in_query');
+
 // Private page redirect functionality - WordPress native approach
 function mas_redirect_private_pages_to_login()
 {
