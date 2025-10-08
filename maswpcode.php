@@ -145,55 +145,22 @@ function mas_add_login_styles()
 {
     ?>
     <style type="text/css">
-        /* Improve overall login page appearance */
-        body.login {
-            background: #f1f1f1;
+        /* Hide standard login fields - only show WPO365 button */
+        #loginform > p,
+        #loginform > label,
+        #loginform .user-pass-wrap,
+        .login #nav,
+        .login #backtoblog {
+            display: none !important;
         }
 
-        /* Style the login form container */
-        .login form {
-            margin-top: 20px;
-            margin-bottom: 20px;
-            background: #fff;
-            border: 1px solid #ddd;
-            box-shadow: 0 1px 3px rgba(0,0,0,.1);
-        }
-
-        /* Ensure message styling looks good */
+        /* Style the custom message and WPO365 button */
         .mas-signin-text a:hover {
             text-decoration: underline !important;
         }
 
-        /* Style WPO365 login button if present */
         .wpo365-button {
             margin-top: 15px;
-        }
-
-        /* Hide username and password fields */
-        .login form p.login-username,
-        .login form p.login-password,
-        .login form p.login-remember,
-        .login form p.submit,
-        .login form .user-pass-wrap,
-        .login form label[for="user_login"],
-        .login form label[for="user_pass"],
-        .login form #user_login,
-        .login form #user_pass,
-        .login form .forgetmenot,
-        .login form #rememberme {
-            display: none !important;
-        }
-
-        /* Hide the entire form except WPO365 button */
-        #loginform > p,
-        #loginform > label {
-            display: none !important;
-        }
-
-        /* Hide "Lost your password" link */
-        .login #nav,
-        .login #backtoblog {
-            display: none !important;
         }
     </style>
     <?php
