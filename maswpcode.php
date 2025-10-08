@@ -40,11 +40,6 @@ add_filter('user_has_cap', 'mas_allow_private_page_access', 10, 3);
 // Private page redirect functionality - WordPress native approach
 function mas_redirect_private_pages_to_login()
 {
-    // Only proceed if user is not logged in
-    if (is_user_logged_in()) {
-        return;
-    }
-
     // Skip admin, AJAX, REST API, and cron contexts
     if (is_admin() ||
         wp_doing_ajax() ||
@@ -65,6 +60,11 @@ function mas_redirect_private_pages_to_login()
 
     // Skip login page itself
     if (strpos($_SERVER['REQUEST_URI'], 'wp-login.php') !== false) {
+        return;
+    }
+
+    // Only proceed if user is not logged in
+    if (is_user_logged_in()) {
         return;
     }
 
