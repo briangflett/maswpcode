@@ -95,6 +95,11 @@ class Mas_Form_Processor extends \ElementorPro\Modules\Forms\Classes\Action_Base
                 $result = civicrm_api3('FormProcessor', $form_id, $mapped_fields);
                 // Log the result for visibility
                 error_log('[maswpcode] FormProcessor.submit result: ' . print_r($result, true));
+
+                // After mailing list signup, remove contact from Prospect groups
+                if ($form_id === 'mailing_list_form' && !empty($mapped_fields['email'])) {
+                    $this->removeFromProspectGroups($mapped_fields['email']);
+                }
             } catch (\Exception $e) {
                 error_log('[maswpcode] FormProcessor.submit ERROR: ' . $e->getMessage());
                 if (method_exists($e, 'getTraceAsString')) {
@@ -102,6 +107,45 @@ class Mas_Form_Processor extends \ElementorPro\Modules\Forms\Classes\Action_Base
                 };
                 exit;
             }
+        }
+    }
+
+    /**
+     * Remove a contact from all Prospect groups after they sign up for the newsletter.
+     * This moves them into the "Active Contacts" smart group automatically.
+     */
+    private function removeFromProspectGroups(string $email): void
+    {
+        try {
+            $contacts = \Civi\Api4\Email::get(false)
+                ->addSelect('contact_id')
+                ->addWhere('email', '=', $email)
+                ->addWhere('contact_id.is_deleted', '=', false)
+                ->execute();
+
+            foreach ($contacts as $contact) {
+                $groupContacts = \Civi\Api4\GroupContact::get(false)
+                    ->addSelect('id', 'group_id', 'group_id:label')
+                    ->addWhere('contact_id', '=', $contact['contact_id'])
+                    ->addWhere('status', '=', 'Added')
+                    ->addWhere('group_id:label', 'LIKE', 'Prospects -%')
+                    ->execute();
+
+                foreach ($groupContacts as $gc) {
+                    \Civi\Api4\GroupContact::update(false)
+                        ->addWhere('id', '=', $gc['id'])
+                        ->addValue('status', 'Removed')
+                        ->execute();
+
+                    error_log(sprintf(
+                        '[maswpcode] Removed contact %d from Prospect group "%s" after newsletter signup',
+                        $contact['contact_id'],
+                        $gc['group_id:label']
+                    ));
+                }
+            }
+        } catch (\Exception $e) {
+            error_log('[maswpcode] Error removing from Prospect groups: ' . $e->getMessage());
         }
     }
 
