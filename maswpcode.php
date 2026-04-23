@@ -256,3 +256,50 @@ function prevent_category_search_404($preempt, $wp_query)
     return $preempt;
 }
 add_filter('pre_handle_404', 'prevent_category_search_404', 10, 2);
+
+// Expose user_meta `civicrm_contact_id` on /wp-json/wp/v2/users/me so the
+// VC portal chat + update widgets can read it without an extra round-trip.
+function mas_register_civicrm_contact_id_field()
+{
+    register_rest_field('user', 'civicrm_contact_id', array(
+        'get_callback' => function ($user) {
+            $id = get_user_meta($user['id'], 'civicrm_contact_id', true);
+            return $id !== '' ? (int) $id : null;
+        },
+        'schema' => array(
+            'description' => 'Cached CiviCRM Contact ID for this WP user.',
+            'type'        => array('integer', 'null'),
+            'context'     => array('edit'),
+        ),
+    ));
+}
+add_action('rest_api_init', 'mas_register_civicrm_contact_id_field');
+
+// POST /wp-json/mas/v1/users/me/civicrm-contact-id  body: {contact_id: N}
+// Stores the CiviCRM Contact ID for the currently logged-in user. A user can
+// only write their own mapping; no privilege escalation via this route.
+function mas_register_civicrm_contact_id_route()
+{
+    register_rest_route('mas/v1', '/users/me/civicrm-contact-id', array(
+        'methods'             => 'POST',
+        'permission_callback' => function () {
+            return is_user_logged_in();
+        },
+        'args' => array(
+            'contact_id' => array(
+                'required' => true,
+                'type'     => 'integer',
+            ),
+        ),
+        'callback' => function (WP_REST_Request $req) {
+            $uid = get_current_user_id();
+            $cid = (int) $req->get_param('contact_id');
+            if ($cid <= 0) {
+                return new WP_Error('invalid_contact_id', 'contact_id must be positive', array('status' => 400));
+            }
+            update_user_meta($uid, 'civicrm_contact_id', $cid);
+            return array('user_id' => $uid, 'civicrm_contact_id' => $cid);
+        },
+    ));
+}
+add_action('rest_api_init', 'mas_register_civicrm_contact_id_route');
