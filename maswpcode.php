@@ -257,6 +257,17 @@ function prevent_category_search_404($preempt, $wp_query)
 }
 add_filter('pre_handle_404', 'prevent_category_search_404', 10, 2);
 
+// Ensure wp-api is enqueued on the front-end for any logged-in user, so the
+// VC portal widgets always see `wpApiSettings.nonce` for REST cookie auth.
+// Without this, non-admin users (admin bar hidden) hit 401 on /wp-json/wp/v2/users/me.
+function mas_enqueue_wp_api_for_logged_in_users()
+{
+    if (is_user_logged_in()) {
+        wp_enqueue_script('wp-api');
+    }
+}
+add_action('wp_enqueue_scripts', 'mas_enqueue_wp_api_for_logged_in_users');
+
 // Expose user_meta `civicrm_contact_id` on /wp-json/wp/v2/users/me so the
 // VC portal chat + update widgets can read it without an extra round-trip.
 function mas_register_civicrm_contact_id_field()
