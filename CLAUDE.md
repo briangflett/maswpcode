@@ -97,3 +97,44 @@ tail -f /home/brian/log/wordpress.logs/wp-debug.log | grep "Wpo\\"
 - **Debug Log Location**: `/home/brian/log/wordpress.logs/wp-debug.log` (not in wp-content)
 - **Database Queries**: Use `$wpdb` directly for WordPress data, not CiviCRM API4
 - **OAuth Success**: Look for "Successfully saved user object id" and final redirect in debug log
+
+## Production Access (Safe Inspection)
+
+When debugging a production issue, use these patterns to **inspect** prod safely. Any write to prod (SQL UPDATE/INSERT/DELETE, file edits, git pull on prod, cv scr that mutates, scp to prod) **always requires Brian's explicit approval per turn** — past approval doesn't extend to new writes.
+
+### Read-only DB inspection via SSH tunnel
+
+```bash
+# 1. Open the tunnel
+ssh -f -N -L 3307:localhost:3306 mas-prod
+ss -ltn | grep ":3307 " >/dev/null && echo TUNNEL_OPEN
+
+# 2. Use the readonly user (credentials in mascode .env, gitignored)
+source /home/brian/buildkit/build/masdemo/web/wp-content/uploads/civicrm/ext/mascode/.env
+mysql -h localhost -P 3307 -u "$PROD_READONLY_USER" -p"$PROD_READONLY_PASS" "$PROD_CIVI_DB" -e "SELECT ..."
+
+# 3. Close when done
+pkill -f "ssh -f -N -L 3307"
+```
+
+For maswpcode-specific debugging, the same `mas_mas` database holds both the WordPress (`wp_*`) and CiviCRM (`civicrm_*`) tables on prod — query both via the same tunnel. Useful tables: `wp_e_submissions`, `wp_e_submissions_actions_log` (Elementor), `civicrm_afform_submission`, `civicrm_contact`.
+
+### Playwright on live prod URLs
+
+```javascript
+// Public Elementor form (no auth)
+browser_navigate('https://www.masadvise.org/some-form-page/')
+
+// Inspect form state before submit
+document.querySelectorAll('form[name="some-form"] input').forEach(i => console.log(i.name, i.value))
+```
+
+**Don't click submit** on real prod forms unless that's the intended write.
+
+### Hard rules
+
+1. **Every prod write needs explicit Brian approval that turn**. Past "yes" doesn't extend.
+2. **Default to readonly creds**. The writable `mas_mas` user exists for deploy/clone, not inspection.
+3. **Always backup before a prod file edit** (`cp file file.bak-$(date +%F)` then edit in place).
+4. **Diff before deploy**. If `scp dev → prod`, run `ssh prod 'diff bak new'` first — dev/prod can drift silently.
+5. **Close SSH tunnels** when done.
